@@ -11,6 +11,7 @@ struct pf_patch32_t pf_construct_patch32(uint32_t matches[], uint32_t masks[], u
     patch.matches = matches;
     patch.masks = masks;
     patch.count = count;
+    patch.disabled = false;
     patch.callback = callback;
 
     return patch;
@@ -23,6 +24,7 @@ struct pf_patch64_t pf_construct_patch64(uint64_t matches[], uint64_t masks[], u
     patch.matches = matches;
     patch.masks = masks;
     patch.count = count;
+    patch.disabled = false;
     patch.callback = callback;
 
     return patch;
@@ -56,6 +58,15 @@ void pf_patchset_emit64(void *buf, size_t size, struct pf_patchset64_t patchset)
     patchset.handler(buf, size, patchset);
 }
 
+void pf_disable_patch32(struct pf_patch32_t patch) {
+    patch.disabled = true;
+}
+
+void pf_disable_patch64(struct pf_patch64_t patch) {
+    patch.disabled = true;
+}
+
+
 
 void pf_find_maskmatch32(void *buf, size_t size, struct pf_patchset32_t patchset) {
     uint32_t *stream = buf;
@@ -66,16 +77,18 @@ void pf_find_maskmatch32(void *buf, size_t size, struct pf_patchset32_t patchset
             struct pf_patch32_t patch = patchset.patches[p];
 
             insn_match_cnt = 0;
-            for (int x = 0; x < patch.count; x++) {
-                if ((stream[i + x] & patch.masks[x]) == patch.matches[x]) {
-                    insn_match_cnt++;
-                } else {
-                    break;
+                if (!patch.disabled) {
+                    for (int x = 0; x < patch.count; x++) {
+                    if ((stream[i + x] & patch.masks[x]) == patch.matches[x]) {
+                        insn_match_cnt++;
+                    } else {
+                        break;
+                    }
                 }
-            }
-            if (insn_match_cnt == patch.count) {
-                uint32_t *found_stream = stream + i;
-                patch.callback(patch, found_stream);
+                if (insn_match_cnt == patch.count) {
+                    uint32_t *found_stream = stream + i;
+                    patch.callback(patch, found_stream);
+                }
             }
         }
     }
