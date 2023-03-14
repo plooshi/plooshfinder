@@ -66,8 +66,6 @@ void pf_disable_patch64(struct pf_patch64_t patch) {
     patch.disabled = true;
 }
 
-
-
 void pf_find_maskmatch32(void *buf, size_t size, struct pf_patchset32_t patchset) {
     uint32_t *stream = buf;
     uint64_t uint_count = size >> 2;
