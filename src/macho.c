@@ -3,21 +3,46 @@
 #include <stdio.h>
 #include <string.h>
 #include "macho.h"
+#include "utils.h"
 
-bool is_macho(void *buf) {
+uint32_t macho_get_magic(void *buf) {
     uint32_t *buf_ptr = (uint32_t *) buf;
     uint32_t magic = buf_ptr[0];
 
-    if (magic != 0xfeedfacf && magic != 0xcafebabe) {
+    if (magic == 0xfeedfacf || magic == 0xbebafeca) {
+        return magic;
+    } else {
         printf("Not a mach-o!\n");
-        return false;
     }
     
-    return true;
+    return 0;
+}
+
+void *macho_find_arch(void *buf, uint32_t arch) {
+    uint32_t *buf_ptr = (uint32_t *) buf;
+    uint32_t magic = buf_ptr[0];
+
+    if (magic == 0xbebafeca) {
+        struct fat_header *header = (struct fat_header *) buf;
+
+        struct fat_arch *farch = (struct fat_arch *) ((char *) buf + sizeof(struct fat_header));
+
+        for (int i = 0; i < convert_endianness32(header->nfat_arch); i++) {
+            if (farch->cputype == arch) {
+                return buf + convert_endianness32(farch->offset);
+            }
+
+            farch = (struct fat_arch *) ((char *) farch + sizeof(struct fat_arch));
+        }
+
+        printf("Universal mach-o does not contain an arm64 slice!\n");
+    }
+
+    return NULL;
 }
 
 struct segment_command_64 *macho_get_segment(void *buf, char *name) {
-    if (!is_macho(buf)) {
+    if (!macho_get_magic(buf)) {
         return NULL;
     }
 
@@ -36,16 +61,14 @@ struct segment_command_64 *macho_get_segment(void *buf, char *name) {
         }
 
         after_header = (struct load_command_64 *) ((char *) after_header + after_header->cmdsize);
-
-        printf("next seg: 0x%lx\n", (uint64_t) after_header - (uint64_t) buf);
     }
 
-    printf("unable to find segment\n");
+    printf("%s: Unable to find segment %s!\n", __FUNCTION__, name);
     return NULL;
 }
 
 struct section_64 *macho_get_section(void *buf, struct segment_command_64 *segment, char *name) {
-    if (!segment || !is_macho(buf)) {
+    if (!segment || !macho_get_magic(buf)) {
         return NULL;
     }
 
@@ -59,12 +82,12 @@ struct section_64 *macho_get_section(void *buf, struct segment_command_64 *segme
         section = (struct section_64 *) ((char *) section + sizeof(struct section_64));
     }
 
-    printf("unable to find section\n");
+    printf("%s: Unable to find section %s!\n", __FUNCTION__, name);
     return NULL;
 }
 
 struct section_64 *macho_find_section(void *buf, char *segment_name, char *section_name) {
-    if (!is_macho(buf)) {
+    if (!macho_get_magic(buf)) {
         return NULL;
     }
 
@@ -74,7 +97,7 @@ struct section_64 *macho_find_section(void *buf, char *segment_name, char *secti
     }
 
     struct section_64 *section = macho_get_section(buf, segment, section_name);
-    if (!segment) {
+    if (!section) {
         return NULL;
     }
 

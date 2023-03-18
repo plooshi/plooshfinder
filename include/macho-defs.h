@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #define LC_SEGMENT_64 0x19
+#define CPU_TYPE_ARM64 0xc000001
 
 struct mach_header_64 {
     uint32_t magic; 
@@ -11,6 +12,19 @@ struct mach_header_64 {
     uint32_t sizeofcmds;
     uint32_t flags;
     uint32_t reserved;
+};
+
+struct fat_header {
+    uint32_t magic;
+    uint32_t nfat_arch;
+};
+
+struct fat_arch {
+    uint32_t cputype;
+    uint32_t cpusubtype;
+    uint32_t offset;
+    uint32_t size;
+    uint32_t align;
 };
 
 struct section_64 {
