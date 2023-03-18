@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+// util macros
+#define nop 0xd503201f
+#define ret 0xd65f03c0
+
 struct pf_patch_t {
     void *matches;
     void *masks;
