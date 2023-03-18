@@ -1,8 +1,8 @@
 // WIP patchfinder
 // Made by ploosh
 
-#include "plooshfinder.h"
 #include <stdio.h>
+#include "plooshfinder.h"
 
 struct pf_patch32_t pf_construct_patch32(uint32_t matches[], uint32_t masks[], uint32_t count, bool (*callback)(struct pf_patch32_t patch, void *stream)) {
     struct pf_patch32_t patch;
@@ -83,7 +83,7 @@ void pf_find_maskmatch32(void *buf, size_t size, struct pf_patchset32_t patchset
                         break;
                     }
                 }
-                
+
                 if (insn_match_cnt == patch.count) {
                     uint32_t *found_stream = stream + i;
                     patch.callback(patch, found_stream);
@@ -102,16 +102,19 @@ void pf_find_maskmatch64(void *buf, size_t size, struct pf_patchset64_t patchset
             struct pf_patch64_t patch = patchset.patches[p];
 
             insn_match_cnt = 0;
-            for (int x = 0; x < patch.count; x++) {
-                if ((stream[i + x] & patch.masks[x]) == patch.matches[x]) {
-                    insn_match_cnt++;
-                } else {
-                    break;
+            if (!patch.disabled) {
+                for (int x = 0; x < patch.count; x++) {
+                    if ((stream[i + x] & patch.masks[x]) == patch.matches[x]) {
+                        insn_match_cnt++;
+                    } else {
+                        break;
+                    }
                 }
-            }
-            if (insn_match_cnt == patch.count) {
-                uint64_t *found_stream = stream + i;
-                patch.callback(patch, found_stream);
+                
+                if (insn_match_cnt == patch.count) {
+                    uint64_t *found_stream = stream + i;
+                    patch.callback(patch, found_stream);
+                }
             }
         }
     }
