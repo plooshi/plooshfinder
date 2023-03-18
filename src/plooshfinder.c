@@ -75,14 +75,15 @@ void pf_find_maskmatch32(void *buf, size_t size, struct pf_patchset32_t patchset
             struct pf_patch32_t patch = patchset.patches[p];
 
             insn_match_cnt = 0;
-                if (!patch.disabled) {
-                    for (int x = 0; x < patch.count; x++) {
+            if (!patch.disabled) {
+                for (int x = 0; x < patch.count; x++) {
                     if ((stream[i + x] & patch.masks[x]) == patch.matches[x]) {
                         insn_match_cnt++;
                     } else {
                         break;
                     }
                 }
+                
                 if (insn_match_cnt == patch.count) {
                     uint32_t *found_stream = stream + i;
                     patch.callback(patch, found_stream);
