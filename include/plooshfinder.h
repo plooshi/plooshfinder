@@ -53,7 +53,7 @@ struct pf_patchset32_t pf_construct_patchset32(struct pf_patch32_t *patches, uin
 struct pf_patchset64_t pf_construct_patchset64(struct pf_patch64_t *patches, uint32_t count, void (*handler)(void *buf, size_t size, struct pf_patchset64_t patchset));
 void pf_patchset_emit32(void *buf, size_t size, struct pf_patchset32_t patchset);
 void pf_patchset_emit64(void *buf, size_t size, struct pf_patchset64_t patchset);
-void pf_disable_patch32(struct pf_patch64_t patch)
+void pf_disable_patch32(struct pf_patch32_t patch);
 void pf_disable_patch64(struct pf_patch64_t patch);
 
 // utils for finding
