@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #define LC_SEGMENT_64 0x19
+#define LC_BUILD_VERSION 0x32
 #define CPU_TYPE_ARM64 0xc000001
 
 struct mach_header_64 {
@@ -30,6 +31,7 @@ struct fat_arch {
 struct section_64 {
     char sectname[16];
     char segname[16];
+    
     uint64_t addr;
     uint64_t size;
     uint32_t offset;
@@ -45,6 +47,7 @@ struct section_64 {
 struct segment_command_64 {
     uint32_t cmd;
     uint32_t cmdsize;
+
     char segname[16];
     uint64_t vmaddr;
     uint64_t vmsize;
@@ -59,4 +62,14 @@ struct segment_command_64 {
 struct load_command_64 {
     uint32_t cmd;
     uint32_t cmdsize;
+};
+
+struct build_version_command {
+    uint32_t cmd;
+    uint32_t cmdsize;
+
+    uint32_t platform;
+    uint32_t minos;
+    uint32_t sdk;
+    uint32_t ntools;
 };

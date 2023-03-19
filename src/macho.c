@@ -67,6 +67,33 @@ struct segment_command_64 *macho_get_segment(void *buf, char *name) {
     return NULL;
 }
 
+uint32_t macho_get_platform(void *buf) {
+    if (!macho_get_magic(buf)) {
+        return 0;
+    }
+
+    struct load_command_64 *after_header = buf + sizeof(struct mach_header_64);
+    struct mach_header_64 *header = buf;
+
+    for (int i = 0; i < header->ncmds; i++) {
+        if (after_header->cmd == LC_BUILD_VERSION) {
+            struct build_version_command *cmd = (struct build_version_command *) after_header;
+
+            if (cmd->platform > 5) {
+                printf("%s: Invalid platform!\n", __FUNCTION__);
+                return 0;
+            }
+
+            return cmd->platform; 
+        }
+
+        after_header = (struct load_command_64 *) ((char *) after_header + after_header->cmdsize);
+    }
+
+    printf("%s: Unable to get platform!\n", __FUNCTION__);
+    return 0;
+}
+
 struct section_64 *macho_get_section(void *buf, struct segment_command_64 *segment, char *name) {
     if (!segment || !macho_get_magic(buf)) {
         return NULL;
