@@ -4,6 +4,7 @@ OBJDIR = obj
 OBJS = $(patsubst src/%,$(OBJDIR)/%,$(SRC:.c=.o))
 
 LDFLAGS ?= -fuse-ld=lld
+CFLAGS ?= -O2
 CC := clang
 AR ?= ar
 RANLIB ?= ranlib
