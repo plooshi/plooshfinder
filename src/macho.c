@@ -41,32 +41,6 @@ void *macho_find_arch(void *buf, uint32_t arch) {
     return NULL;
 }
 
-struct segment_command_64 *macho_get_segment(void *buf, char *name) {
-    if (!macho_get_magic(buf)) {
-        return NULL;
-    }
-
-    struct load_command_64 *after_header = buf + sizeof(struct mach_header_64);
-    struct mach_header_64 *header = buf;
-
-    for (int i = 0; i < header->ncmds; i++) {
-        if (after_header->cmd == LC_SEGMENT_64) {
-            struct segment_command_64 *segment = (struct segment_command_64 *) after_header;
-
-            if (strcmp(segment->segname, name) == 0) {
-                return segment;
-            }
-        } else {
-            break;
-        }
-
-        after_header = (struct load_command_64 *) ((char *) after_header + after_header->cmdsize);
-    }
-
-    printf("%s: Unable to find segment %s!\n", __FUNCTION__, name);
-    return NULL;
-}
-
 uint32_t macho_get_platform(void *buf) {
     if (!macho_get_magic(buf)) {
         return 0;
@@ -92,6 +66,32 @@ uint32_t macho_get_platform(void *buf) {
 
     printf("%s: Unable to get platform!\n", __FUNCTION__);
     return 0;
+}
+
+struct segment_command_64 *macho_get_segment(void *buf, char *name) {
+    if (!macho_get_magic(buf)) {
+        return NULL;
+    }
+
+    struct load_command_64 *after_header = buf + sizeof(struct mach_header_64);
+    struct mach_header_64 *header = buf;
+
+    for (int i = 0; i < header->ncmds; i++) {
+        if (after_header->cmd == LC_SEGMENT_64) {
+            struct segment_command_64 *segment = (struct segment_command_64 *) after_header;
+
+            if (strcmp(segment->segname, name) == 0) {
+                return segment;
+            }
+        } else {
+            break;
+        }
+
+        after_header = (struct load_command_64 *) ((char *) after_header + after_header->cmdsize);
+    }
+
+    printf("%s: Unable to find segment %s!\n", __FUNCTION__, name);
+    return NULL;
 }
 
 struct section_64 *macho_get_section(void *buf, struct segment_command_64 *segment, char *name) {
