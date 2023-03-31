@@ -193,10 +193,8 @@ int64_t pf_adrp_offset(uint32_t adrp) {
 void *pf_follow_xref(uint32_t *stream) {
     // this is marked as void * so it can be casted to a different type later
     if ((stream[0] & 0x9f000000) != 0x90000000) {
-        printf("%s: is not adrp!\n", __FUNCTION__);
         return 0;
     } else if ((stream[1] & 0xff800000) != 0x91000000) {
-        printf("%s: is not add!\n", __FUNCTION__);
         return 0;
     }
 
