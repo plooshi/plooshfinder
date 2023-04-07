@@ -1,0 +1,32 @@
+name: Build plooshfinder
+
+on: [ push, pull_request, workflow_dispatch ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - name: Install lld
+      run: sudo apt install lld
+    
+    - name: Compile
+      run: make -j$(nproc)
+    
+    - name: Move plooshfinder
+      run: |
+        mkdir -p build
+        mv libplooshfinder.a build
+    
+    - name: Upload artifact
+        uses: wangyucode/sftp-upload-action@v1.4.8
+        with:
+          host: ${{ secrets.PLOOSH_SFTP_HOST }}
+          port: 22
+          username: sftp
+          password: ${{ secrets.PLOOSH_SFTP_PASS }}
+          forceUpload: true
+          dryRun: false
+          localDir: 'build/'
+          remoteDir: '/artifacts/plooshfinder'
