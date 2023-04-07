@@ -9,8 +9,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       
-      - name: Install lld
-        run: sudo apt install lld
+      - name: Compile
+        run: make -j$(nproc)
+      
+      - name: Move plooshfinder
+        run: |
+          mkdir -p build
+          mv libplooshfinder.a build
+      
+      - name: Upload artifact
+        uses: wangyucode/sftp-upload-action@v1.4.8
+        with:
+          host: ${{ secrets.PLOOSH_SFTP_HOST }}
+          port: 22
+          username: sftp
+          password: ${{ secrets.PLOOSH_SFTP_PASS }}
+          forceUpload: true
+          dryRun: false
+          localDir: 'build/'
+          remoteDir: '/uploads/artifacts/plooshfinder/linux'
+  
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
       
       - name: Compile
         run: make -j$(nproc)
@@ -30,4 +53,4 @@ jobs:
           forceUpload: true
           dryRun: false
           localDir: 'build/'
-          remoteDir: '/uploads/artifacts/plooshfinder'
+          remoteDir: '/uploads/artifacts/plooshfinder/macos'
