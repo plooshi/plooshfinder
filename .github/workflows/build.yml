@@ -30,4 +30,4 @@ jobs:
           forceUpload: true
           dryRun: false
           localDir: 'build/'
-          remoteDir: '/artifacts/plooshfinder'
+          remoteDir: '/uploads/artifacts/plooshfinder'
