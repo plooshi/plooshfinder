@@ -1,3 +1,5 @@
+#ifndef _MACHO_DEFS_H
+#define _MACHO_DEFS_H
 #include <stdint.h>
 
 #define LC_SEGMENT_64 0x19
@@ -73,3 +75,5 @@ struct build_version_command {
     uint32_t sdk;
     uint32_t ntools;
 };
+
+#endif

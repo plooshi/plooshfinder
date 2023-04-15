@@ -1,6 +1,6 @@
+// plooshfinder
 // WIP patchfinder
-// Made by ploosh
-
+// Made by Ploosh
 #include <stdio.h>
 #include "plooshfinder.h"
 

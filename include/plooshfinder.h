@@ -1,6 +1,5 @@
 #ifndef _PLOOSHFINDER_H
 #define _PLOOSHFINDER_H
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
