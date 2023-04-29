@@ -12,7 +12,7 @@ uint32_t macho_get_magic(void *buf) {
     if (magic == 0xfeedfacf || magic == 0xbebafeca) {
         return magic;
     } else {
-        printf("Not a mach-o!\n");
+        printf("%s: Not a mach-o!\n", __FUNCTION__);
     }
     
     return 0;
@@ -35,7 +35,7 @@ void *macho_find_arch(void *buf, uint32_t arch) {
             farch = (struct fat_arch *) ((char *) farch + sizeof(struct fat_arch));
         }
 
-        printf("Universal mach-o does not contain an arm64 slice!\n");
+        printf("%s: Universal mach-o does not contain an arm64 slice!\n", __FUNCTION__);
     }
 
     return NULL;
