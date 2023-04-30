@@ -94,9 +94,6 @@ struct elf_symbol_64 *elf_find_symbol_stype(void *buf, char *name, uint32_t type
         char *sym_name = strtab + symbol->name;
 
         if (strcmp(sym_name, name) == 0) {
-            uint64_t offset = elf_get_offset(buf);
-
-            symbol->offset = symbol->offset - offset;
             return symbol;
         }
     }
