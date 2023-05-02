@@ -56,7 +56,7 @@ int64_t pf_adrp_offset(uint32_t adrp) {
         return 0;
     }
     
-    uint64_t immhi = (((uint64_t) adrp >> 5) & 0x7ffffULL) << 2;
+    int64_t immhi = (((uint64_t) adrp >> 5) & 0x7ffffULL) << 2;
     uint64_t immlo = ((uint64_t) adrp >> 29) & 0x3ULL;
 
     return pf_signextend_64((immhi | immlo) << 12, 33);
