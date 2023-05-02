@@ -3,6 +3,8 @@
 // Made by Ploosh
 
 #include <stdio.h>
+#include <stdint.h>
+#include "macho.h"
 #include "plooshfinder.h"
 #include "plooshfinder32.h"
 #include "plooshfinder64.h"
@@ -72,7 +74,7 @@ void *pf_follow_xref(uint32_t *stream) {
         return 0;
     }
 
-    uint64_t stream_addr = (uint64_t) stream & ~0xfffULL;
+    uint64_t stream_addr = ((uint64_t) stream & ~0xfffUL) | 0x10;
 
     uint64_t adrp_addr = stream_addr + pf_adrp_offset(stream[0]);
     uint32_t add_offset = (stream[1] >> 10) & 0xfff;
