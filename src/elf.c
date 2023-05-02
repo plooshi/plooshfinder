@@ -11,7 +11,7 @@ bool is_elf(void *buf) {
     if (strncmp(hdr->ident.signature, elf_magic, 4) == 0) {
         return true;
     } else {
-        printf("Not an ELF!\n");
+        printf("%s: Not an ELF!\n", __FUNCTION__);
     }
 
     return false;
