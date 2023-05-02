@@ -4,7 +4,6 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "macho.h"
 #include "plooshfinder.h"
 #include "plooshfinder32.h"
 #include "plooshfinder64.h"
