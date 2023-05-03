@@ -35,7 +35,7 @@ void *macho_find_arch(void *buf, uint32_t arch) {
             farch = (struct fat_arch *) ((char *) farch + sizeof(struct fat_arch));
         }
 
-        printf("%s: Universal mach-o does not contain an arm64 slice!\n", __FUNCTION__);
+        printf("%s: Universal mach-o does not contain a slice for the arch requested!\n", __FUNCTION__);
     }
 
     return NULL;
@@ -99,7 +99,7 @@ struct section_64 *macho_get_section(void *buf, struct segment_command_64 *segme
         return NULL;
     }
 
-    struct section_64 *section = (struct section_64 *)((char *)segment + sizeof(struct segment_command_64));
+    struct section_64 *section = (struct section_64 *) ((char *) segment + sizeof(struct segment_command_64));
 
     for (int i = 0; i < segment->nsects; i++) {
         if (strcmp(section->sectname, name) == 0) {
@@ -111,6 +111,13 @@ struct section_64 *macho_get_section(void *buf, struct segment_command_64 *segme
 
     printf("%s: Unable to find section %s!\n", __FUNCTION__, name);
     return NULL;
+}
+
+struct section_64 *macho_get_last_section(struct segment_command_64 *segment) {
+    uint32_t index = segment->nsects - 1;
+    struct section_64 *sections = (struct section_64 *) ((char *) segment + sizeof(struct segment_command_64));
+
+    return sections + index;
 }
 
 struct section_64 *macho_find_section(void *buf, char *segment_name, char *section_name) {
