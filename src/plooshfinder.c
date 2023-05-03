@@ -63,7 +63,7 @@ int64_t pf_adrp_offset(uint32_t adrp) {
     return pf_signextend_64((immhi | immlo) << 12, 33);
 }
 
-void *pf_follow_xref(uint32_t *stream) {
+void *pf_follow_xref(void *buf, uint32_t *stream) {
     // this is marked as void * so it can be casted to a different type later
     if ((stream[0] & 0x9f000000) != 0x90000000) {
         printf("%s: is not adrp!\n", __FUNCTION__);
@@ -72,8 +72,9 @@ void *pf_follow_xref(uint32_t *stream) {
         printf("%s: is not add!\n", __FUNCTION__);
         return 0;
     }
-
-    uint64_t stream_addr = ((uint64_t) stream & ~0xfffUL) | 0x10;
+    
+    uint16_t buf_offset = (uintptr_t) buf & 0xfff;
+    uint64_t stream_addr = ((uintptr_t) stream & ~0xfffUL) + buf_offset;
 
     uint64_t adrp_addr = stream_addr + pf_adrp_offset(stream[0]);
     uint32_t add_offset = (stream[1] >> 10) & 0xfff;
