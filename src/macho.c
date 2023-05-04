@@ -138,9 +138,9 @@ struct section_64 *macho_find_section(void *buf, char *segment_name, char *secti
     return section;
 }
 
-uint64_t macho_get_offset(void *buf) {
+struct segment_command_64 *macho_get_segment_for_va(void *buf, uint64_t addr) {
     if (!macho_get_magic(buf)) {
-        return 0;
+        return NULL;
     }
 
     struct load_command_64 *after_header = buf + sizeof(struct mach_header_64);
@@ -150,19 +150,68 @@ uint64_t macho_get_offset(void *buf) {
     for (int i = 0; i < header->ncmds; i++) {
         if (after_header->cmd == LC_SEGMENT_64) {
             segment = (struct segment_command_64 *) after_header;
+            uint64_t segment_start = segment->vmaddr;
+            uint64_t segment_end = segment->vmaddr + segment->vmsize;
 
-            break;
+            if (segment_start <= addr && segment_end > addr) {
+                // segment's range contains the addr
+                return segment;
+            }
         }
 
         after_header = (struct load_command_64 *) ((char *) after_header + after_header->cmdsize);
     }
 
-    if (!segment) {
-        printf("%s: Unable to find first segment?\n", __FUNCTION__);
-        return 0;
+    printf("%s: Unable to find segment containing 0x%lx!\n", __FUNCTION__, addr);
+    return NULL;
+}
+
+struct section_64 *macho_get_section_for_va(struct segment_command_64 *segment, uint64_t addr) {
+    struct section_64 *section = (struct section_64 *) ((char *) segment + sizeof(struct segment_command_64));
+
+    for (int i = 0; i < segment->nsects; i++) {
+        uint64_t section_start = section->addr;
+        uint64_t section_end = section->addr + section->size;
+
+        if (section_start <= addr && section_end > addr) {
+            // section's range contains the addr
+            return section;
+        }
+
+        section = (struct section_64 *) ((char *) section + sizeof(struct section_64));
     }
 
-    return segment->vmaddr - segment->fileoff;
+    printf("%s: Unable to find section containing 0x%lx?\n", __FUNCTION__, addr);
+    return NULL;
+}
+
+struct section_64 *macho_find_section_for_va(void *buf, uint64_t addr) {
+    if (!macho_get_magic(buf)) {
+        return NULL;
+    }
+
+    struct segment_command_64 *segment = macho_get_segment_for_va(buf, addr);
+    if (!segment) {
+        return NULL;
+    }
+
+    struct section_64 *section = macho_get_section_for_va(segment, addr);
+    if (!section) {
+        return NULL;
+    }
+
+    return section;
+}
+
+void *macho_va_to_ptr(void *buf, uint64_t addr) {
+    if (!macho_get_magic(buf)) {
+        return NULL;
+    }
+
+    struct section_64 *section = macho_find_section_for_va(buf, addr);
+    uint64_t offset = addr - section->addr;
+    
+    return buf + section->offset + offset;
 }
 
 struct nlist_64 *macho_find_symbol(void *buf, char *name) {

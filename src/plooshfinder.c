@@ -4,6 +4,9 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include "macho.h"
+#include "elf.h"
 #include "plooshfinder.h"
 #include "plooshfinder32.h"
 #include "plooshfinder64.h"
@@ -11,7 +14,7 @@
 uint32_t *pf_find_next(uint32_t *stream, uint32_t count, uint32_t match, uint32_t mask) {
     uint32_t *find_stream = 0;
     for (int i = 0; i < count; i++) {
-        if ((stream[i] & mask) == match) {
+        if (pf_maskmatch32(stream[i], match, mask)) {
             find_stream = stream + i;
             break;
         }
@@ -23,32 +26,12 @@ uint32_t *pf_find_prev(uint32_t *stream, uint32_t count, uint32_t match, uint32_
     uint32_t *find_stream = 0;
     for (int neg_count = -count; count > 0; count--) {
         int ind = neg_count + count;
-        if ((stream[ind] & mask) == match) {
+        if (pf_maskmatch32(stream[ind], match, mask)) {
             find_stream = stream + ind;
             break;
         }
     }
     return find_stream;
-}
-
-uint32_t *pf_follow_branch(uint32_t *insn) {
-    uint32_t branch = insn[0];
-    uint8_t imm = 0;
-
-    if ((branch & 0xff000010) == 0x54000000) {
-        // b.cond
-        imm = 19;
-    } else if ((branch & 0x7c000000) == 0x14000000) {
-        // b / bl
-        imm = 26;
-    } else {
-        printf("%s: is not branch!\n", __FUNCTION__);
-        return 0;
-    }
-
-    uint32_t *target = insn + pf_signextend_32(branch, imm);
-
-    return target;
 }
 
 int64_t pf_adrp_offset(uint32_t adrp) {
@@ -63,6 +46,51 @@ int64_t pf_adrp_offset(uint32_t adrp) {
     return pf_signextend_64((immhi | immlo) << 12, 33);
 }
 
+uint32_t *pf_follow_veneer(void *buf, uint32_t *stream) {
+    // determine if this function is a veneer
+    if (!pf_maskmatch32(stream[0], 0x90000010, 0x9f00001f)) {
+        return stream;
+    } else if (!pf_maskmatch32(stream[1], 0xf9400210, 0xffc003ff)) {
+        return stream;
+    } else if (!pf_maskmatch32(stream[2], 0xd61f0200, 0xffffffff)) {
+        return stream;
+    }
+
+    uint16_t buf_offset = (uint64_t) buf & 0xfff;
+    uint64_t unaligned_stream = (uint64_t) stream - buf_offset;
+    uint64_t stream_addr = (unaligned_stream & ~0xfffUL) + buf_offset;
+
+    uint64_t adrp_addr = stream_addr + pf_adrp_offset(stream[0]);
+    uint32_t ldr_offset = ((stream[1] >> 10) & 0xfff) << 3;
+    uint64_t target_addr = *(uint64_t *) (adrp_addr + ldr_offset);
+
+    void *ptr = macho_va_to_ptr(buf, target_addr);
+
+    return (uint32_t *) ptr;
+}
+
+uint32_t *pf_follow_branch(void *buf, uint32_t *stream) {
+    uint32_t branch = stream[0];
+    uint8_t imm = 0;
+
+    if ((branch & 0xff000010) == 0x54000000) {
+        // b.cond
+        imm = 19;
+    } else if ((branch & 0x7c000000) == 0x14000000) {
+        // b / bl
+        imm = 26;
+    } else {
+        printf("%s: is not branch!\n", __FUNCTION__);
+        return 0;
+    }
+
+    uint32_t *target = stream + pf_signextend_32(branch, imm);
+
+    target = pf_follow_veneer(buf, stream);
+
+    return target;
+}
+
 void *pf_follow_xref(void *buf, uint32_t *stream) {
     // this is marked as void * so it can be casted to a different type later
     if ((stream[0] & 0x9f000000) != 0x90000000) {
@@ -73,8 +101,9 @@ void *pf_follow_xref(void *buf, uint32_t *stream) {
         return 0;
     }
     
-    uint16_t buf_offset = (uintptr_t) buf & 0xfff;
-    uint64_t stream_addr = ((uintptr_t) stream & ~0xfffUL) + buf_offset;
+    uint16_t buf_offset = (uint64_t) buf & 0xfff;
+    uint64_t unaligned_stream = (uint64_t) stream - buf_offset;
+    uint64_t stream_addr = (unaligned_stream & ~0xfffUL) + buf_offset;
 
     uint64_t adrp_addr = stream_addr + pf_adrp_offset(stream[0]);
     uint32_t add_offset = (stream[1] >> 10) & 0xfff;
