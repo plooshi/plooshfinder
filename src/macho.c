@@ -18,6 +18,17 @@ uint32_t macho_get_magic(void *buf) {
     return 0;
 }
 
+bool macho_check(void *buf) {
+    uint32_t *buf_ptr = (uint32_t *) buf;
+    uint32_t magic = buf_ptr[0];
+
+    if (magic == 0xfeedfacf || magic == 0xbebafeca) {
+        return true;
+    }
+    
+    return false;
+}
+
 void *macho_find_arch(void *buf, uint32_t arch) {
     uint32_t *buf_ptr = (uint32_t *) buf;
     uint32_t magic = buf_ptr[0];

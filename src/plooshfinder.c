@@ -64,7 +64,15 @@ uint32_t *pf_follow_veneer(void *buf, uint32_t *stream) {
     uint32_t ldr_offset = ((stream[1] >> 10) & 0xfff) << 3;
     uint64_t target_addr = *(uint64_t *) (adrp_addr + ldr_offset);
 
-    void *ptr = macho_va_to_ptr(buf, target_addr);
+    void *ptr;
+
+    if (macho_check(buf)) {
+        ptr = macho_va_to_ptr(buf, target_addr);
+    } else if (elf_check(buf)) {
+        ptr = elf_va_to_ptr(buf, target_addr);
+    } else {
+        ptr = (void *) stream;
+    }
 
     return (uint32_t *) ptr;
 }
