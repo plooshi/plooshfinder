@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "macho.h"
 #include "utils.h"
 
@@ -276,4 +277,93 @@ uint64_t macho_get_symbol_size(struct nlist_64 *symbol) {
     }
 
     return next_symbol->offset - symbol->offset;
+}
+
+uint64_t macho_parse_plist_integer(void *key) {
+    char *key_value = strstr(key, "<integer");
+
+    if (key_value) {
+        key_value = strstr(key_value, ">");
+
+        if (key_value) {
+            return strtoull(key_value + 1, 0, 0);
+        }
+    }
+
+    return 0;
+} 
+
+struct macho_kext_64 macho_parse_prelink_info(void *buf, struct section_64 *kmod_info, char *bundle_name) {
+    char kext_name[256];
+    struct macho_kext_64 kext;
+
+    char *start = buf + kmod_info->offset;
+
+    char *info_dict = strstr(start, "PrelinkInfoDictionary");
+    char *last_dict = strstr(info_dict, "<array>") + 7;
+
+    while (last_dict) {
+        char *dict_end = strstr(last_dict, "</dict>");
+        if (!dict_end) break;
+
+        char *dict2 = strstr(last_dict + 1, "<dict>");
+        while (dict2) {
+            if (dict2 > dict_end) break;
+
+            dict2 = strstr(dict2 + 1, "<dict>");
+            dict_end = strstr(dict_end + 1, "</dict>");
+        }
+
+        char *identifier = strstr(last_dict, "CFBundleIdentifier");
+
+        if (identifier) {
+            char *value_key = strstr(identifier, "<string>");
+
+            if (value_key) {
+                value_key += strlen("<string>");
+                char *key_end = strstr(value_key, "</string>");
+
+                if (key_end) {
+                    uint32_t key_len = key_end - value_key;
+
+                    memcpy(kext_name, value_key, key_len);
+                    kext_name[key_len] = 0;
+
+                    if (strcmp(kext_name, bundle_name) == 0) {
+                        char *addr_key = strstr(last_dict, "_PrelinkExecutableLoadAddr");
+                        char *size_key = strstr(last_dict, "_PrelinkExecutableSize");
+
+                        if (addr_key && size_key) {
+                            void *addr_buf = macho_va_to_ptr(buf, macho_parse_plist_integer(addr_key));
+                            kext.addr = (uint64_t) addr_buf;
+                            kext.size = macho_parse_plist_integer(size_key);
+
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        last_dict = strstr(dict_end, "<dict>");
+    }
+
+    return kext;
+}
+
+struct macho_kext_64 macho_parse_kmod_info(void *buf, struct section_64 *kmod_info, struct section_64 *kmod_start, char *bundle_name) {
+    struct macho_kext_64 kext;
+    uint64_t kmod_count = kmod_info->size >> 3;
+    uint64_t *info_start = buf + kmod_info->offset;
+
+    for (uint64_t i = 0; i < kmod_count; i++) {
+        uint64_t info_addr = info_start[i];
+        struct kmod_info *info = macho_va_to_ptr(buf, (0xffffULL << 48) | info_addr);
+
+        if (strcmp(info->name, bundle_name) == 0) {
+            printf("%lx\n", info->size);
+        }
+    }
+    
+    return kext;
 }
