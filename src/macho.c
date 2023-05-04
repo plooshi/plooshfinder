@@ -101,7 +101,6 @@ struct segment_command_64 *macho_get_segment(void *buf, char *name) {
         after_header = (struct load_command_64 *) ((char *) after_header + after_header->cmdsize);
     }
 
-    printf("%s: Unable to find segment %s!\n", __FUNCTION__, name);
     return NULL;
 }
 
@@ -120,7 +119,6 @@ struct section_64 *macho_get_section(void *buf, struct segment_command_64 *segme
         section = (struct section_64 *) ((char *) section + sizeof(struct section_64));
     }
 
-    printf("%s: Unable to find section %s!\n", __FUNCTION__, name);
     return NULL;
 }
 

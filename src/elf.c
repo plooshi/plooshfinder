@@ -47,7 +47,6 @@ struct elf_sheader_64 *elf_get_section(void *buf, char *name) {
         }
     }
 
-    printf("%s: Unable to find section %s!\n", __FUNCTION__, name);
     return NULL;
 }
 
