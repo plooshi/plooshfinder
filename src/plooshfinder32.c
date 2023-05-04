@@ -49,7 +49,7 @@ void pf_find_maskmatch32(void *buf, size_t size, struct pf_patchset32_t patchset
             insn_match_cnt = 0;
             if (!patch.disabled) {
                 for (int x = 0; x < patch.count; x++) {
-                    if (pf_maskmatch64(stream[i + x], patch.matches[x], patch.masks[x])) {
+                    if (pf_maskmatch32(stream[i + x], patch.matches[x], patch.masks[x])) {
                         insn_match_cnt++;
                     } else {
                         break;
