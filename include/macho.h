@@ -4,12 +4,6 @@
 #include <stdint.h>
 #include "macho_defs.h"
 
-// kext struct
-struct macho_kext_64 {
-    uint64_t addr;
-    uint64_t size;
-};
-
 uint32_t macho_get_magic(void *buf);
 bool macho_check(void *buf);
 void *macho_find_arch(void *buf, uint32_t arch);
@@ -25,7 +19,9 @@ void *macho_va_to_ptr(void *buf, uint64_t addr);
 struct nlist_64 *macho_find_symbol(void *buf, char *name);
 uint64_t macho_get_symbol_size(struct nlist_64 *symbol);
 uint64_t macho_parse_plist_integer(void *key);
-struct macho_kext_64 macho_parse_prelink_info(void *buf, struct section_64 *kmod_info, char *bundle_name);
-struct macho_kext_64 macho_parse_kmod_info(void *buf, struct section_64 *kmod_info, struct section_64 *kmod_start, char *bundle_name);
+uint64_t macho_xnu_untag_va(uint64_t addr);
+struct mach_header_64 *macho_parse_prelink_info(void *buf, struct section_64 *kmod_info, char *bundle_name);
+struct mach_header_64 *macho_parse_kmod_info(void *buf, struct section_64 *kmod_info, struct section_64 *kmod_start, char *bundle_name);
+struct mach_header_64 *macho_find_kext(void *buf, char *name);
 
 #endif

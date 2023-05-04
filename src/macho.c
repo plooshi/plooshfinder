@@ -54,7 +54,7 @@ void *macho_find_arch(void *buf, uint32_t arch) {
 }
 
 uint32_t macho_get_platform(void *buf) {
-    if (!macho_get_magic(buf)) {
+    if (!macho_check(buf)) {
         return 0;
     }
 
@@ -81,7 +81,7 @@ uint32_t macho_get_platform(void *buf) {
 }
 
 struct segment_command_64 *macho_get_segment(void *buf, char *name) {
-    if (!macho_get_magic(buf)) {
+    if (!macho_check(buf)) {
         return NULL;
     }
 
@@ -106,7 +106,7 @@ struct segment_command_64 *macho_get_segment(void *buf, char *name) {
 }
 
 struct section_64 *macho_get_section(void *buf, struct segment_command_64 *segment, char *name) {
-    if (!segment || !macho_get_magic(buf)) {
+    if (!segment || !macho_check(buf)) {
         return NULL;
     }
 
@@ -131,7 +131,7 @@ struct section_64 *macho_get_last_section(struct segment_command_64 *segment) {
 }
 
 struct section_64 *macho_find_section(void *buf, char *segment_name, char *section_name) {
-    if (!macho_get_magic(buf)) {
+    if (!macho_check(buf)) {
         return NULL;
     }
 
@@ -149,7 +149,7 @@ struct section_64 *macho_find_section(void *buf, char *segment_name, char *secti
 }
 
 struct segment_command_64 *macho_get_segment_for_va(void *buf, uint64_t addr) {
-    if (!macho_get_magic(buf)) {
+    if (!macho_check(buf)) {
         return NULL;
     }
 
@@ -161,7 +161,7 @@ struct segment_command_64 *macho_get_segment_for_va(void *buf, uint64_t addr) {
         if (after_header->cmd == LC_SEGMENT_64) {
             segment = (struct segment_command_64 *) after_header;
             uint64_t segment_start = segment->vmaddr;
-            uint64_t segment_end = segment->vmaddr + segment->vmsize;
+            uint64_t segment_end = segment_start + segment->vmsize;
 
             if (segment_start <= addr && segment_end > addr) {
                 // segment's range contains the addr
@@ -181,7 +181,7 @@ struct section_64 *macho_get_section_for_va(struct segment_command_64 *segment, 
 
     for (int i = 0; i < segment->nsects; i++) {
         uint64_t section_start = section->addr;
-        uint64_t section_end = section->addr + section->size;
+        uint64_t section_end = section_start + section->size;
 
         if (section_start <= addr && section_end > addr) {
             // section's range contains the addr
@@ -196,7 +196,7 @@ struct section_64 *macho_get_section_for_va(struct segment_command_64 *segment, 
 }
 
 struct section_64 *macho_find_section_for_va(void *buf, uint64_t addr) {
-    if (!macho_get_magic(buf)) {
+    if (!macho_check(buf)) {
         return NULL;
     }
 
@@ -214,18 +214,19 @@ struct section_64 *macho_find_section_for_va(void *buf, uint64_t addr) {
 }
 
 void *macho_va_to_ptr(void *buf, uint64_t addr) {
-    if (!macho_get_magic(buf)) {
+    if (!macho_check(buf)) {
         return NULL;
     }
 
     struct section_64 *section = macho_find_section_for_va(buf, addr);
+
     uint64_t offset = addr - section->addr;
     
     return buf + section->offset + offset;
 }
 
 struct nlist_64 *macho_find_symbol(void *buf, char *name) {
-    if (!macho_get_magic(buf)) {
+    if (!macho_check(buf)) {
         return NULL;
     }
 
@@ -291,11 +292,23 @@ uint64_t macho_parse_plist_integer(void *key) {
     }
 
     return 0;
-} 
+}
 
-struct macho_kext_64 macho_parse_prelink_info(void *buf, struct section_64 *kmod_info, char *bundle_name) {
+uint64_t macho_xnu_untag_va(uint64_t addr) {
+    if (((addr >> 32) & 0xffff) == 0xfff0) {
+        return (0xffffULL << 48) | addr;
+    } else {
+        return addr;
+    }
+}
+
+struct mach_header_64 *macho_parse_prelink_info(void *buf, struct section_64 *kmod_info, char *bundle_name) {
+    if (!macho_check(buf)) {
+        return NULL;
+    }
+
     char kext_name[256];
-    struct macho_kext_64 kext;
+    struct mach_header_64 *kext = NULL;
 
     char *start = buf + kmod_info->offset;
 
@@ -331,12 +344,9 @@ struct macho_kext_64 macho_parse_prelink_info(void *buf, struct section_64 *kmod
 
                     if (strcmp(kext_name, bundle_name) == 0) {
                         char *addr_key = strstr(last_dict, "_PrelinkExecutableLoadAddr");
-                        char *size_key = strstr(last_dict, "_PrelinkExecutableSize");
 
-                        if (addr_key && size_key) {
-                            void *addr_buf = macho_va_to_ptr(buf, macho_parse_plist_integer(addr_key));
-                            kext.addr = (uint64_t) addr_buf;
-                            kext.size = macho_parse_plist_integer(size_key);
+                        if (addr_key) {
+                            kext = (struct mach_header_64 *) macho_va_to_ptr(buf, macho_parse_plist_integer(addr_key));
 
                             break;
                         }
@@ -351,19 +361,47 @@ struct macho_kext_64 macho_parse_prelink_info(void *buf, struct section_64 *kmod
     return kext;
 }
 
-struct macho_kext_64 macho_parse_kmod_info(void *buf, struct section_64 *kmod_info, struct section_64 *kmod_start, char *bundle_name) {
-    struct macho_kext_64 kext;
+struct mach_header_64 *macho_parse_kmod_info(void *buf, struct section_64 *kmod_info, struct section_64 *kmod_start, char *bundle_name) {\
+    if (!macho_check(buf)) {
+        return NULL;
+    }
+
+    struct mach_header_64 *kext = NULL;
+
     uint64_t kmod_count = kmod_info->size >> 3;
     uint64_t *info_start = buf + kmod_info->offset;
+    uint64_t *start = buf + kmod_start->offset;
 
     for (uint64_t i = 0; i < kmod_count; i++) {
-        uint64_t info_addr = info_start[i];
-        struct kmod_info *info = macho_va_to_ptr(buf, (0xffffULL << 48) | info_addr);
+        struct kmod_info *info = macho_va_to_ptr(buf, macho_xnu_untag_va(info_start[i]));
 
         if (strcmp(info->name, bundle_name) == 0) {
-            printf("%lx\n", info->size);
+            kext = (struct mach_header_64 *) macho_va_to_ptr(buf, macho_xnu_untag_va(start[i]));
         }
     }
     
+    return kext;
+}
+
+struct mach_header_64 *macho_find_kext(void *buf, char *name) {
+    struct mach_header_64 *kext = NULL;
+
+    struct segment_command_64 *prelink_info = macho_get_segment(buf, "__PRELINK_INFO");
+    if (!prelink_info) return NULL;
+
+    struct section_64 *kmod_info = macho_get_section(buf, prelink_info, "__kmod_info");
+
+    if (!kmod_info) {
+        struct section_64 *info = macho_get_section(buf, prelink_info, "__info");
+        if (!info) return NULL;
+
+        kext = macho_parse_prelink_info(buf, info, name);
+    } else {
+        struct section_64 *kmod_start = macho_get_section(buf, prelink_info, "__kmod_start");
+        if (!kmod_start) return NULL;
+
+        kext = macho_parse_kmod_info(buf, kmod_info, kmod_start, name);
+    }
+
     return kext;
 }
