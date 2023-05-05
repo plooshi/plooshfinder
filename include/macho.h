@@ -23,5 +23,6 @@ uint64_t macho_xnu_untag_va(uint64_t addr);
 struct mach_header_64 *macho_parse_prelink_info(void *buf, struct section_64 *kmod_info, char *bundle_name);
 struct mach_header_64 *macho_parse_kmod_info(void *buf, struct section_64 *kmod_info, struct section_64 *kmod_start, char *bundle_name);
 struct mach_header_64 *macho_find_kext(void *buf, char *name);
+void macho_run_each_kext(void *buf, void (*function)(void *real_buf, void *kextbuf, uint64_t kext_size));
 
 #endif

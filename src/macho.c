@@ -405,3 +405,29 @@ struct mach_header_64 *macho_find_kext(void *buf, char *name) {
 
     return kext;
 }
+
+
+void macho_run_each_kext(void *buf, void (*function)(void *real_buf, void *kextbuf, uint64_t kext_size)) {
+    struct segment_command_64 *prelink_info = macho_get_segment(buf, "__PRELINK_INFO");
+    if (!prelink_info) return;
+
+    struct section_64 *kmod_start = macho_get_section(buf, prelink_info, "__kmod_start");
+
+    if (!kmod_start) {
+        struct section_64 *kexts_text = macho_find_section(buf, "__PLK_TEXT_EXEC", "__text");
+        if (!kexts_text) return;
+
+        function(buf, buf + kexts_text->offset, kexts_text->size);
+    } else {
+        uint64_t kmod_count = kmod_start->size >> 3;
+        uint64_t *start = buf + kmod_start->offset;
+
+        for (uint32_t i = 0; i < kmod_count; i++) {
+            struct mach_header_64 *kext = macho_va_to_ptr(buf, macho_xnu_untag_va(start[i]));
+
+            struct section_64 *kext_text = macho_find_section(kext, "__TEXT_EXEC", "__text");
+
+            function(buf, macho_va_to_ptr(buf, macho_xnu_untag_va(kext_text->addr)), kext_text->size);
+        }
+    }
+}
