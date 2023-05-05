@@ -94,7 +94,7 @@ uint32_t *pf_follow_branch(void *buf, uint32_t *stream) {
 
     uint32_t *target = stream + pf_signextend_32(branch, imm);
 
-    target = pf_follow_veneer(buf, stream);
+    target = pf_follow_veneer(buf, target);
 
     return target;
 }
