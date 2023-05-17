@@ -340,7 +340,7 @@ struct nlist_64 *macho_find_symbol(void *buf, char *name) {
         }
     }
 
-    printf("%s: Unable to find symbol %s!\n", __FUNCTION__, name);
+    //printf("%s: Unable to find symbol %s!\n", __FUNCTION__, name);
     return NULL;
 }
 
