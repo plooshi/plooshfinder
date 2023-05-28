@@ -18,9 +18,6 @@ struct pf_patchset64_t {
 };
 
 // patch utils
-struct pf_patch64_t pf_construct_patch64(uint64_t matches[], uint64_t masks[], uint32_t count, bool (*callback)(struct pf_patch64_t *patch, void *stream));
-struct pf_patchset64_t pf_construct_patchset64(struct pf_patch64_t *patches, uint32_t count, void (*handler)(void *buf, size_t size, struct pf_patchset64_t patchset));
-void pf_patchset_emit64(void *buf, size_t size, struct pf_patchset64_t patchset);
 bool pf_maskmatch64(uint64_t insn, uint64_t match, uint64_t mask);
 void pf_find_maskmatch64(void *buf, size_t size, struct pf_patchset64_t patchset);
 

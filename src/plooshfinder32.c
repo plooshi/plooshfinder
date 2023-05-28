@@ -3,32 +3,6 @@
 #include <stddef.h>
 #include "plooshfinder32.h"
 
-struct pf_patch32_t pf_construct_patch32(uint32_t matches[], uint32_t masks[], uint32_t count, bool (*callback)(struct pf_patch32_t *patch, void *stream)) {
-    struct pf_patch32_t patch;
-
-    // construct the patch
-    patch.matches = matches;
-    patch.masks = masks;
-    patch.count = count;
-    patch.callback = callback;
-
-    return patch;
-}
-
-struct pf_patchset32_t pf_construct_patchset32(struct pf_patch32_t *patches, uint32_t count, void (*handler)(void *buf, size_t size, struct pf_patchset32_t patchset)) {
-    struct pf_patchset32_t patchset;
-
-    patchset.patches = patches;
-    patchset.count = count;
-    patchset.handler = handler;
-
-    return patchset;
-}
-
-void pf_patchset_emit32(void *buf, size_t size, struct pf_patchset32_t patchset) {
-    patchset.handler(buf, size, patchset);
-}
-
 bool pf_maskmatch32(uint32_t insn, uint32_t match, uint32_t mask) {
     return (insn & mask) == match;
 }

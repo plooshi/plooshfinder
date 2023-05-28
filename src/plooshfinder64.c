@@ -3,32 +3,6 @@
 #include <stddef.h>
 #include "plooshfinder64.h"
 
-struct pf_patch64_t pf_construct_patch64(uint64_t matches[], uint64_t masks[], uint32_t count, bool (*callback)(struct pf_patch64_t *patch, void *stream)) {
-    struct pf_patch64_t patch;
-
-    // construct the patch
-    patch.matches = matches;
-    patch.masks = masks;
-    patch.count = count;
-    patch.callback = callback;
-
-    return patch;
-}
-
-struct pf_patchset64_t pf_construct_patchset64(struct pf_patch64_t *patches, uint32_t count, void (*handler)(void *buf, size_t size, struct pf_patchset64_t patchset)) {
-    struct pf_patchset64_t patchset;
-
-    patchset.patches = patches;
-    patchset.count = count;
-    patchset.handler = handler;
-
-    return patchset;
-}
-
-void pf_patchset_emit64(void *buf, size_t size, struct pf_patchset64_t patchset) {
-    patchset.handler(buf, size, patchset);
-}
-
 bool pf_maskmatch64(uint64_t insn, uint64_t match, uint64_t mask) {
     return (insn & mask) == match;
 }
