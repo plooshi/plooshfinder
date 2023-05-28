@@ -2,7 +2,7 @@
 #define _MACHO_H
 #include <stdbool.h>
 #include <stdint.h>
-#include "macho_defs.h"
+#include "defs/macho_defs.h"
 
 uint32_t macho_get_magic(void *buf);
 bool macho_check(void *buf);

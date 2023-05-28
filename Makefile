@@ -1,5 +1,5 @@
 INCLDIRS = -I./include
-SRC = $(wildcard src/*)
+SRC = $(wildcard src/*.c) $(wildcard src/formats/*.c)
 OBJDIR = obj
 OBJS = $(patsubst src/%,$(OBJDIR)/%,$(SRC:.c=.o))
 
@@ -12,6 +12,7 @@ all: dirs $(OBJS) libplooshfinder.a
 
 dirs:
 	@mkdir -p $(OBJDIR)
+	@mkdir -p $(OBJDIR)/formats
 
 clean:
 	@rm -rf libplooshfinder.a obj

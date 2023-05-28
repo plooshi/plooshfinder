@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "macho.h"
+#include "formats/macho.h"
 #include "utils.h"
 
 uint32_t macho_get_magic(void *buf) {

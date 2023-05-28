@@ -1,8 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include "elf.h"
-#include "elf_defs.h"
+#include "formats/elf.h"
 
 bool elf_check(void *buf) {
     struct elf_header_64 *hdr = (struct elf_header_64 *) buf;
@@ -27,7 +26,7 @@ bool is_elf(void *buf) {
 
 
 struct elf_sheader_64 *elf_get_section(void *buf, char *name) {
-    if (!is_elf(buf)) {
+    if (!elf_check(buf)) {
         return NULL;
     }
 
@@ -51,7 +50,7 @@ struct elf_sheader_64 *elf_get_section(void *buf, char *name) {
 }
 
 void *elf_va_to_ptr(void *buf, uint64_t addr) {
-    if (!is_elf(buf)) {
+    if (!elf_check(buf)) {
         return 0;
     }
 
@@ -75,7 +74,7 @@ void *elf_va_to_ptr(void *buf, uint64_t addr) {
 }
 
 uint64_t elf_ptr_to_va(void *buf, void *ptr) {
-    if (!is_elf(buf)) {
+    if (!elf_check(buf)) {
         return 0;
     }
 
@@ -103,7 +102,7 @@ uint64_t elf_ptr_to_va(void *buf, void *ptr) {
 }
 
 struct elf_symbol_64 *elf_find_symbol_stype(void *buf, char *name, uint32_t type) {
-    if (!is_elf(buf)) {
+    if (!elf_check(buf)) {
         return NULL;
     }
 
@@ -143,7 +142,7 @@ struct elf_symbol_64 *elf_find_symbol_stype(void *buf, char *name, uint32_t type
 }
 
 struct elf_symbol_64 *elf_find_symbol(void *buf, char *name) {
-    if (!is_elf(buf)) {
+    if (!elf_check(buf)) {
         return NULL;
     }
 

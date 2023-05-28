@@ -2,7 +2,7 @@
 #define _ELF_H
 #include <stdbool.h>
 #include <stdint.h>
-#include "elf_defs.h"
+#include "defs/elf_defs.h"
 
 bool elf_check(void *buf);
 bool is_elf(void *buf);

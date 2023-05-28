@@ -5,8 +5,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include "macho.h"
-#include "elf.h"
+#include "formats/macho.h"
+#include "formats/elf.h"
+#include "formats/pe.h"
 #include "plooshfinder.h"
 #include "plooshfinder32.h"
 #include "plooshfinder64.h"
