@@ -16,6 +16,7 @@ struct pf_patch_t pf_construct_patch(void *matches, void *masks, uint32_t count,
     // construct the patch
     patch.matches = matches;
     patch.masks = masks;
+    patch.disabled = false;
     patch.count = count;
     patch.callback = callback;
 
@@ -34,6 +35,10 @@ struct pf_patchset_t pf_construct_patchset(struct pf_patch_t *patches, uint32_t 
 
 void pf_patchset_emit(void *buf, size_t size, struct pf_patchset_t patchset) {
     patchset.handler(buf, size, patchset);
+}
+
+void pf_patch_disable(struct pf_patch_t *patch) {
+    patch->disabled = true;
 }
 
 uint32_t *pf_find_next(uint32_t *stream, uint32_t count, uint32_t match, uint32_t mask) {

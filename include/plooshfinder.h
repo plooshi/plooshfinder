@@ -11,6 +11,7 @@
 struct pf_patch_t {
     void *matches;
     void *masks;
+    bool disabled;
     uint32_t count;
     bool (*callback)(struct pf_patch_t *patch, void *stream);
 };

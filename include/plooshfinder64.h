@@ -7,6 +7,7 @@
 struct pf_patch64_t {
     uint64_t *matches;
     uint64_t *masks;
+    bool disabled;
     uint32_t count;
     bool (*callback)(struct pf_patch64_t *patch, void *stream);
 };

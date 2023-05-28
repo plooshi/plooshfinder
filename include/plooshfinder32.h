@@ -7,6 +7,7 @@
 struct pf_patch32_t {
     uint32_t *matches;
     uint32_t *masks;
+    bool disabled;
     uint32_t count;
     bool (*callback)(struct pf_patch32_t *patch, void *stream);
 };
