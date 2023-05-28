@@ -106,8 +106,8 @@ void *pe_va_to_ptr(void *buf, uint64_t addr) {
     if (!pe_check(buf)) return NULL;
 
     struct COFF_Header *pe_hdr = get_pe_header(buf);
-    struct Section_Header *sects_start = (void *) pe_hdr + sizeof(struct COFF_Header) + pe_hdr->sizeOfOptionalHeader;
     struct PE64_Optional_Header *opt_hdr = get_pe_opt_header(buf);
+    struct Section_Header *sects_start = (void *) opt_hdr + pe_hdr->sizeOfOptionalHeader;
 
     for (int i = 0; i < pe_hdr->numberOfSections; i++) {
         struct Section_Header *section = sects_start + i;
@@ -128,8 +128,8 @@ uint64_t pe_ptr_to_va(void *buf, void *ptr) {
     if (!pe_check(buf)) return 0;
 
     struct COFF_Header *pe_hdr = get_pe_header(buf);
-    struct Section_Header *sects_start = (void *) pe_hdr + sizeof(struct COFF_Header) + pe_hdr->sizeOfOptionalHeader;
     struct PE64_Optional_Header *opt_hdr = get_pe_opt_header(buf);
+    struct Section_Header *sects_start = (void *) opt_hdr + pe_hdr->sizeOfOptionalHeader;
     uint64_t ptr_addr = (uint64_t) ptr;
 
     for (int i = 0; i < pe_hdr->numberOfSections; i++) {

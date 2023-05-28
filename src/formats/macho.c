@@ -20,8 +20,7 @@ uint32_t macho_get_magic(void *buf) {
 }
 
 bool macho_check(void *buf) {
-    uint32_t *buf_ptr = (uint32_t *) buf;
-    uint32_t magic = buf_ptr[0];
+    uint32_t magic = macho_get_magic(buf);
 
     if (magic == 0xfeedfacf || magic == 0xbebafeca) {
         return true;
@@ -31,12 +30,10 @@ bool macho_check(void *buf) {
 }
 
 void *macho_find_arch(void *buf, uint32_t arch) {
-    uint32_t *buf_ptr = (uint32_t *) buf;
-    uint32_t magic = buf_ptr[0];
+    uint32_t magic = macho_get_magic(buf);
 
     if (magic == 0xbebafeca) {
         struct fat_header *header = (struct fat_header *) buf;
-
         struct fat_arch *farch = (struct fat_arch *) ((char *) buf + sizeof(struct fat_header));
 
         for (int i = 0; i < convert_endianness32(header->nfat_arch); i++) {
@@ -50,7 +47,7 @@ void *macho_find_arch(void *buf, uint32_t arch) {
         printf("%s: Universal mach-o does not contain a slice for the arch requested!\n", __FUNCTION__);
     }
 
-    return NULL;
+    return buf;
 }
 
 uint32_t macho_get_platform(void *buf) {
