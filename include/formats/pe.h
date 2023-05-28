@@ -1,5 +1,5 @@
-#ifndef _ELF_H
-#define _ELF_H
+#ifndef _PE_H
+#define _PE_H
 #include <stdbool.h>
 #include <stdint.h>
 #include "defs/pe_defs.h"

@@ -5,26 +5,27 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include "formats/macho.h"
-#include "formats/elf.h"
-#include "formats/pe.h"
+#include "formats/multi.h"
 #include "plooshfinder.h"
 #include "plooshfinder32.h"
 #include "plooshfinder64.h"
 
 uint32_t *pf_find_next(uint32_t *stream, uint32_t count, uint32_t match, uint32_t mask) {
     uint32_t *find_stream = 0;
+    
     for (int i = 0; i < count; i++) {
         if (pf_maskmatch32(stream[i], match, mask)) {
             find_stream = stream + i;
             break;
         }
     }
+
     return find_stream;
 }
 
 uint32_t *pf_find_prev(uint32_t *stream, uint32_t count, uint32_t match, uint32_t mask) {
     uint32_t *find_stream = 0;
+
     for (int neg_count = -count; count > 0; count--) {
         int ind = neg_count + count;
         if (pf_maskmatch32(stream[ind], match, mask)) {
@@ -32,6 +33,7 @@ uint32_t *pf_find_prev(uint32_t *stream, uint32_t count, uint32_t match, uint32_
             break;
         }
     }
+
     return find_stream;
 }
 
@@ -65,17 +67,13 @@ uint32_t *pf_follow_veneer(void *buf, uint32_t *stream) {
     uint32_t ldr_offset = ((stream[1] >> 10) & 0xfff) << 3;
     uint64_t target_addr = *(uint64_t *) (adrp_addr + ldr_offset);
 
-    void *ptr;
+    uint32_t *ptr = pf_va_to_ptr(buf, target_addr);
 
-    if (macho_check(buf)) {
-        ptr = macho_va_to_ptr(buf, target_addr);
-    } else if (elf_check(buf)) {
-        ptr = elf_va_to_ptr(buf, target_addr);
-    } else {
-        ptr = (void *) stream;
+    if (!ptr) {
+        ptr = stream;
     }
 
-    return (uint32_t *) ptr;
+    return ptr;
 }
 
 uint32_t *pf_follow_branch(void *buf, uint32_t *stream) {
@@ -95,9 +93,7 @@ uint32_t *pf_follow_branch(void *buf, uint32_t *stream) {
 
     uint32_t *target = stream + pf_signextend_32(branch, imm);
 
-    target = pf_follow_veneer(buf, target);
-
-    return target;
+    return pf_follow_veneer(buf, target);
 }
 
 void *pf_follow_xref(void *buf, uint32_t *stream) {
@@ -113,27 +109,9 @@ void *pf_follow_xref(void *buf, uint32_t *stream) {
     int64_t adrp_addr = pf_adrp_offset(stream[0]);
     uint32_t add_offset = (stream[1] >> 10) & 0xfff;
 
-    uint64_t stream_va = 0;
-    if (macho_check(buf)) {
-        stream_va = macho_ptr_to_va(buf, stream);
-    } else if (elf_check(buf)) {
-        stream_va = elf_ptr_to_va(buf, stream);
-    } else {
-        printf("%s: Unknown binary format!\n", __FUNCTION__);
-    }
-
+    uint64_t stream_va = pf_ptr_to_va(buf, stream);
     uint64_t stream_addr = stream_va & ~0xfffUL;
-
     uint64_t followed_addr = stream_addr + adrp_addr + add_offset;
 
-    void *xref = 0;
-    if (macho_check(buf)) {
-        xref = macho_va_to_ptr(buf, followed_addr);
-    } else if (elf_check(buf)) {
-        xref = elf_va_to_ptr(buf, followed_addr);
-    } else {
-        printf("%s: Unknown binary format?\n", __FUNCTION__);
-    }
-
-    return xref;
+    return pf_va_to_ptr(buf, followed_addr);
 }

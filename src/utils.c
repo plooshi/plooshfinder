@@ -1,5 +1,7 @@
 #include "utils.h"
 
+// the compiler will just use a bswap (optimizations) if possible
+// but it's here if it's needed (i.e. there's no intrinsic)
 uint32_t convert_endianness32(uint32_t val) {
     uint32_t swapped = 0;
     for (uint32_t i = 0; i < 4; i++) {

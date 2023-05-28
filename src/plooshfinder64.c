@@ -10,7 +10,6 @@ struct pf_patch64_t pf_construct_patch64(uint64_t matches[], uint64_t masks[], u
     patch.matches = matches;
     patch.masks = masks;
     patch.count = count;
-    patch.disabled = false;
     patch.callback = callback;
 
     return patch;
@@ -30,10 +29,6 @@ void pf_patchset_emit64(void *buf, size_t size, struct pf_patchset64_t patchset)
     patchset.handler(buf, size, patchset);
 }
 
-void pf_disable_patch64(struct pf_patch64_t patch) {
-    patch.disabled = true;
-}
-
 bool pf_maskmatch64(uint64_t insn, uint64_t match, uint64_t mask) {
     return (insn & mask) == match;
 }
@@ -42,24 +37,22 @@ void pf_find_maskmatch64(void *buf, size_t size, struct pf_patchset64_t patchset
     uint64_t *stream = buf;
     uint64_t uint_count = size >> 3;
     uint32_t insn_match_cnt = 0;
+    
     for (uint64_t i = 0; i < uint_count; i++) {
         for (int p = 0; p < patchset.count; p++) {
             struct pf_patch64_t patch = patchset.patches[p];
 
             insn_match_cnt = 0;
-            if (!patch.disabled) {
-                for (int x = 0; x < patch.count; x++) {
-                    if (pf_maskmatch64(stream[i + x], patch.matches[x], patch.masks[x])) {
-                        insn_match_cnt++;
-                    } else {
-                        break;
-                    }
+            for (int x = 0; x < patch.count; x++) {
+                if (pf_maskmatch64(stream[i + x], patch.matches[x], patch.masks[x])) {
+                    insn_match_cnt++;
+                } else {
+                    break;
                 }
+            }
                 
-                if (insn_match_cnt == patch.count) {
-                    uint64_t *found_stream = stream + i;
-                    patch.callback(patch, found_stream);
-                }
+            if (insn_match_cnt == patch.count) {
+                patch.callback(patch, stream + i);
             }
         }
     }
