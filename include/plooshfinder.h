@@ -21,6 +21,10 @@ struct pf_patchset_t {
     void (*handler)(void *buf, size_t size, struct pf_patchset_t patch);
 };
 
+struct pf_patch_t pf_construct_patch(void *matches, void *masks, uint32_t count, bool (*callback)(struct pf_patch_t *patch, void *stream));
+struct pf_patchset_t pf_construct_patchset(struct pf_patch_t *patches, uint32_t count, void (*handler)(void *buf, size_t size, struct pf_patchset_t patchset));
+void pf_patchset_emit(void *buf, size_t size, struct pf_patchset_t patchset);
+
 // utils for finding
 uint32_t *pf_find_next(uint32_t *stream, uint32_t count, uint32_t match, uint32_t mask);
 uint32_t *pf_find_prev(uint32_t *stream, uint32_t count, uint32_t match, uint32_t mask);
