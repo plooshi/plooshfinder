@@ -38,7 +38,7 @@ uint32_t *pf_find_prev(uint32_t *stream, uint32_t count, uint32_t match, uint32_
 }
 
 int64_t pf_adrp_offset(uint32_t adrp) {
-    if ((adrp & 0x9f000000) != 0x90000000) {
+    if (!pf_maskmatch32(adrp, 0x90000000, 0x9f000000)) {
         printf("%s: is not adrp!\n", __FUNCTION__);
         return 0;
     }
@@ -80,10 +80,10 @@ uint32_t *pf_follow_branch(void *buf, uint32_t *stream) {
     uint32_t branch = stream[0];
     uint8_t imm = 0;
 
-    if ((branch & 0xff000010) == 0x54000000) {
+    if (pf_maskmatch32(branch, 0x54000000, 0xff000010)) {
         // b.cond
         imm = 19;
-    } else if ((branch & 0x7c000000) == 0x14000000) {
+    } else if (pf_maskmatch32(branch, 0x14000000, 0x7c000000)) {
         // b / bl
         imm = 26;
     } else {
@@ -98,10 +98,10 @@ uint32_t *pf_follow_branch(void *buf, uint32_t *stream) {
 
 void *pf_follow_xref(void *buf, uint32_t *stream) {
     // this is marked as void * so it can be casted to a different type later
-    if ((stream[0] & 0x9f000000) != 0x90000000) {
+    if (!pf_maskmatch32(stream[0], 0x90000000, 0x9f000000)) {
         printf("%s: is not adrp!\n", __FUNCTION__);
         return 0;
-    } else if ((stream[1] & 0xff800000) != 0x91000000) {
+    } else if (!pf_maskmatch32(stream[1], 0x91000000, 0xff800000)) {
         printf("%s: is not add!\n", __FUNCTION__);
         return 0;
     }

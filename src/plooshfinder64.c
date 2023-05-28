@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include "plooshfinder64.h"
 
-struct pf_patch64_t pf_construct_patch64(uint64_t matches[], uint64_t masks[], uint32_t count, bool (*callback)(struct pf_patch64_t patch, void *stream)) {
+struct pf_patch64_t pf_construct_patch64(uint64_t matches[], uint64_t masks[], uint32_t count, bool (*callback)(struct pf_patch64_t *patch, void *stream)) {
     struct pf_patch64_t patch;
 
     // construct the patch
@@ -40,19 +40,19 @@ void pf_find_maskmatch64(void *buf, size_t size, struct pf_patchset64_t patchset
     
     for (uint64_t i = 0; i < uint_count; i++) {
         for (int p = 0; p < patchset.count; p++) {
-            struct pf_patch64_t patch = patchset.patches[p];
+            struct pf_patch64_t *patch = patchset.patches + p;
 
             insn_match_cnt = 0;
-            for (int x = 0; x < patch.count; x++) {
-                if (pf_maskmatch64(stream[i + x], patch.matches[x], patch.masks[x])) {
+            for (int x = 0; x < patch->count; x++) {
+                if (pf_maskmatch64(stream[i + x], patch->matches[x], patch->masks[x])) {
                     insn_match_cnt++;
                 } else {
                     break;
                 }
             }
                 
-            if (insn_match_cnt == patch.count) {
-                patch.callback(patch, stream + i);
+            if (insn_match_cnt == patch->count) {
+                patch->callback(patch, stream + i);
             }
         }
     }
