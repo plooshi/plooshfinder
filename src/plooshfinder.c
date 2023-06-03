@@ -182,3 +182,12 @@ void *pf_find_zero_buf(void *buf, size_t size, size_t shc_count) {
     }
     return pf_zero_buf;
 }
+
+uint8_t pf_get_byte_count(uint64_t number) {
+    // determine how many non-zero bytes are in an uint
+    uint8_t count = 0;
+
+    for (int i = 0; i < 3 && (number >> i) != 0; i++) {
+
+    }
+}

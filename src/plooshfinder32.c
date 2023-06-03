@@ -7,7 +7,10 @@ bool pf_maskmatch32(uint32_t insn, uint32_t match, uint32_t mask) {
     return (insn & mask) == match;
 }
 
+uint8_t pf_get_byte_count(uint64_t number);
+
 void pf_find_maskmatch32(void *buf, size_t size, struct pf_patchset32_t patchset) {
+    printf("bc of s: %d\n", pf_get_byte_count(size));
     uint32_t *stream = buf;
     uint64_t uint_count = size >> 2;
     
@@ -31,10 +34,8 @@ void pf_find_maskmatch32(void *buf, size_t size, struct pf_patchset32_t patchset
 }
 
 int32_t pf_signextend_32(int32_t val, uint8_t bits) {
-    uint32_t new_val = (uint32_t) val;
-    
-    new_val <<= 32 - bits;
-    new_val >>= 32 - bits;
+    val = (uint32_t) val << (32 - bits);
+    val >>= 32 - bits;
 
-    return new_val;
+    return val;
 }

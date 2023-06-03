@@ -31,10 +31,8 @@ void pf_find_maskmatch64(void *buf, size_t size, struct pf_patchset64_t patchset
 }
 
 int64_t pf_signextend_64(int64_t val, uint8_t bits) {
-    uint64_t new_val = (uint64_t) val;
+    val = (uint64_t) val << (64 - bits);
+    val >>= 64 - bits;
 
-    new_val <<= 64 - bits;
-    new_val >>= 64 - bits;
-
-    return new_val;
+    return val;
 }
