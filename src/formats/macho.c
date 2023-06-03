@@ -145,6 +145,14 @@ struct section_64 *macho_find_section(void *buf, char *segment_name, char *secti
     return section;
 }
 
+uint64_t macho_xnu_untag_va(uint64_t addr) {
+    if (((addr >> 32) & 0xffff) == 0xfff0) {
+        return (0xffffULL << 48) | addr;
+    } else {
+        return addr;
+    }
+}
+
 struct segment_command_64 *macho_get_segment_for_va(void *buf, uint64_t addr) {
     if (!macho_check(buf)) {
         return NULL;
@@ -177,7 +185,7 @@ struct section_64 *macho_get_section_for_va(struct segment_command_64 *segment, 
     struct section_64 *section = (struct section_64 *) ((char *) segment + sizeof(struct segment_command_64));
 
     for (int i = 0; i < segment->nsects; i++) {
-        uint64_t section_start = section->addr;
+        uint64_t section_start = macho_xnu_untag_va(section->addr);
         uint64_t section_end = section_start + section->size;
 
         if (section_start <= addr && section_end > addr) {
@@ -217,7 +225,7 @@ void *macho_va_to_ptr(void *buf, uint64_t addr) {
 
     struct section_64 *section = macho_find_section_for_va(buf, addr);
 
-    uint64_t offset = addr - section->addr;
+    uint64_t offset = addr - macho_xnu_untag_va(section->addr);
     
     return buf + section->offset + offset;
 }
@@ -298,7 +306,7 @@ uint64_t macho_ptr_to_va(void *buf, void *ptr) {
 
     uint64_t offset = ptr - buf - section->offset;
     
-    return section->addr + offset;
+    return macho_xnu_untag_va(section->addr) + offset;
 }
 
 struct nlist_64 *macho_find_symbol(void *buf, char *name) {
@@ -368,14 +376,6 @@ uint64_t macho_parse_plist_integer(void *key) {
     }
 
     return 0;
-}
-
-uint64_t macho_xnu_untag_va(uint64_t addr) {
-    if (((addr >> 32) & 0xffff) == 0xfff0) {
-        return (0xffffULL << 48) | addr;
-    } else {
-        return addr;
-    }
 }
 
 struct mach_header_64 *macho_parse_prelink_info(void *buf, struct section_64 *kmod_info, char *bundle_name) {
