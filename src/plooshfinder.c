@@ -10,6 +10,8 @@
 #include "plooshfinder32.h"
 #include "plooshfinder64.h"
 
+void *pf_zero_buf;
+
 struct pf_patch_t pf_construct_patch(void *matches, void *masks, uint32_t count, bool (*callback)(struct pf_patch_t *patch, void *stream)) {
     struct pf_patch_t patch;
 
@@ -37,7 +39,7 @@ void pf_patchset_emit(void *buf, size_t size, struct pf_patchset_t patchset) {
     patchset.handler(buf, size, patchset);
 }
 
-void pf_patch_disable(struct pf_patch_t *patch) {
+void pf_disable_patch(struct pf_patch_t *patch) {
     patch->disabled = true;
 }
 
@@ -145,4 +147,38 @@ void *pf_follow_xref(void *buf, uint32_t *stream) {
     uint64_t followed_addr = stream_addr + adrp_addr + add_offset;
 
     return pf_va_to_ptr(buf, followed_addr);
+}
+
+bool pf_set_zero_buf(struct pf_patch_t *patch, uint32_t *stream) {
+    pf_zero_buf = stream;
+
+    pf_disable_patch(patch);
+    return true;
+}
+
+void *pf_find_zero_buf(void *buf, size_t size, size_t shc_count) {
+    pf_zero_buf = NULL;
+
+    uint32_t matches[shc_count];
+    uint32_t masks[shc_count];
+
+    for (size_t i = 0; i < shc_count; i++) {
+        matches[i] = 0;
+        masks[i] = 0xffffffff;
+    }
+
+    struct pf_patch_t patch = pf_construct_patch(matches, masks, sizeof(matches) / sizeof(uint32_t), (void *) pf_set_zero_buf);
+
+    struct pf_patch_t patches[] = {
+        patch
+    };
+
+    struct pf_patchset_t patchset = pf_construct_patchset(patches, sizeof(patches) / sizeof(struct pf_patch_t), (void *) pf_find_maskmatch32);
+
+    pf_patchset_emit(buf, size, patchset);
+
+    if (!pf_zero_buf) {
+        printf("%s: Unable to find zero buf!\n", __FUNCTION__);
+    }
+    return pf_zero_buf;
 }
