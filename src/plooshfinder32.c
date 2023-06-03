@@ -8,7 +8,6 @@ bool pf_maskmatch32(uint32_t insn, uint32_t match, uint32_t mask) {
 }
 
 void pf_find_maskmatch32(void *buf, size_t size, struct pf_patchset32_t patchset) {
-    printf("bc of s: %d\n", pf_get_byte_count(size));
     uint32_t *stream = buf;
     uint64_t uint_count = size >> 2;
     
