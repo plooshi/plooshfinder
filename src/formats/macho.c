@@ -223,7 +223,14 @@ void *macho_va_to_ptr(void *buf, uint64_t addr) {
         return NULL;
     }
 
-    struct section_64 *section = macho_find_section_for_va(buf, addr);
+    struct segment_command_64 *segment = macho_get_segment_for_va(buf, addr);
+    if (!segment) {
+        return NULL;
+    } else if (segment->vmaddr == addr) {
+        return buf + segment->fileoff;
+    }
+
+    struct section_64 *section = macho_get_section_for_va(segment, addr);
 
     uint64_t offset = addr - macho_xnu_untag_va(section->addr);
     
