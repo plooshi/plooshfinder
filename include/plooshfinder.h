@@ -32,9 +32,12 @@ void pf_disable_patch(struct pf_patch_t *patch);
 uint32_t *pf_find_next(uint32_t *stream, uint32_t count, uint32_t match, uint32_t mask);
 uint32_t *pf_find_prev(uint32_t *stream, uint32_t count, uint32_t match, uint32_t mask);
 int64_t pf_adrp_offset(uint32_t adrp);
-uint32_t *pf_follow_veneer(void *buf, void *kext, uint32_t *stream);
-uint32_t *pf_follow_branch(void *buf, void *kext, uint32_t *stream);
-void *pf_follow_xref(void *buf, void *kext, uint32_t *stream);
+uint32_t *pf_follow_veneer(void *buf, uint32_t *stream);
+uint32_t *pf_follow_branch(void *buf, uint32_t *stream);
+void *pf_follow_xref(void *buf, uint32_t *stream);
 void *pf_find_zero_buf(void *buf, size_t size, size_t shc_count);
+uint32_t *fileset_follow_veneer(void *buf, void *kext, uint32_t *stream);
+uint32_t *fileset_follow_branch(void *buf, void *kext, uint32_t *stream);
+void *fileset_follow_xref(void *buf, void *kext, uint32_t *stream);
 
 #endif

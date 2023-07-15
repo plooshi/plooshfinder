@@ -82,7 +82,7 @@ int64_t pf_adrp_offset(uint32_t adrp) {
     return pf_signextend_64((immhi | immlo) << 12, 33);
 }
 
-uint32_t *pf_follow_veneer(void *buf, void *kext, uint32_t *stream) {
+uint32_t *pf_follow_veneer(void *buf, uint32_t *stream) {
     // determine if this function is a veneer
     if (!pf_maskmatch32(stream[0], 0x90000010, 0x9f00001f)) {
         return stream;
@@ -100,7 +100,7 @@ uint32_t *pf_follow_veneer(void *buf, void *kext, uint32_t *stream) {
     uint32_t ldr_offset = ((stream[1] >> 10) & 0xfff) << 3;
     uint64_t target_addr = *(uint64_t *) (adrp_addr + ldr_offset);
 
-    uint32_t *ptr = macho_va_to_ptr(buf, kext, target_addr);
+    uint32_t *ptr = macho_va_to_ptr(buf, target_addr);
 
     if (!ptr) {
         ptr = stream;
@@ -109,7 +109,7 @@ uint32_t *pf_follow_veneer(void *buf, void *kext, uint32_t *stream) {
     return ptr;
 }
 
-uint32_t *pf_follow_branch(void *buf, void *kext, uint32_t *stream) {
+uint32_t *pf_follow_branch(void *buf, uint32_t *stream) {
     uint32_t branch = stream[0];
     uint8_t imm = 0;
 
@@ -126,10 +126,10 @@ uint32_t *pf_follow_branch(void *buf, void *kext, uint32_t *stream) {
 
     uint32_t *target = stream + pf_signextend_32(branch, imm);
 
-    return pf_follow_veneer(buf, kext, target);
+    return pf_follow_veneer(buf, target);
 }
 
-void *pf_follow_xref(void *buf, void *kext, uint32_t *stream) {
+void *pf_follow_xref(void *buf, uint32_t *stream) {
     // this is marked as void * so it can be casted to a different type later
     if (!pf_maskmatch32(stream[0], 0x90000000, 0x9f000000)) {
         printf("%s: is not adrp!\n", __FUNCTION__);
@@ -142,11 +142,11 @@ void *pf_follow_xref(void *buf, void *kext, uint32_t *stream) {
     int64_t adrp_addr = pf_adrp_offset(stream[0]);
     uint32_t add_offset = (stream[1] >> 10) & 0xfff;
 
-    uint64_t stream_va = macho_ptr_to_va(buf, kext, stream);
+    uint64_t stream_va = macho_ptr_to_va(buf, stream);
     uint64_t stream_addr = stream_va & ~0xfffUL;
     uint64_t followed_addr = stream_addr + adrp_addr + add_offset;
 
-    return macho_va_to_ptr(buf, kext, followed_addr);
+    return macho_va_to_ptr(buf, followed_addr);
 }
 
 bool pf_set_zero_buf(struct pf_patch_t *patch, uint32_t *stream) {
@@ -181,4 +181,71 @@ void *pf_find_zero_buf(void *buf, size_t size, size_t shc_count) {
         printf("%s: Unable to find zero buf!\n", __FUNCTION__);
     }
     return pf_zero_buf;
+}
+
+uint32_t *fileset_follow_veneer(void *buf, void *kext, uint32_t *stream) {
+    // determine if this function is a veneer
+    if (!pf_maskmatch32(stream[0], 0x90000010, 0x9f00001f)) {
+        return stream;
+    } else if (!pf_maskmatch32(stream[1], 0xf9400210, 0xffc003ff)) {
+        return stream;
+    } else if (!pf_maskmatch32(stream[2], 0xd61f0200, 0xffffffff)) {
+        return stream;
+    }
+
+    uint16_t buf_offset = (uint64_t) buf & 0xfff;
+    uint64_t unaligned_stream = (uint64_t) stream - buf_offset;
+    uint64_t stream_addr = (unaligned_stream & ~0xfffUL) + buf_offset;
+
+    uint64_t adrp_addr = stream_addr + pf_adrp_offset(stream[0]);
+    uint32_t ldr_offset = ((stream[1] >> 10) & 0xfff) << 3;
+    uint64_t target_addr = *(uint64_t *) (adrp_addr + ldr_offset);
+
+    uint32_t *ptr = fileset_va_to_ptr(buf, kext, target_addr);
+
+    if (!ptr) {
+        ptr = stream;
+    }
+
+    return ptr;
+}
+
+uint32_t *fileset_follow_branch(void *buf, void *kext, uint32_t *stream) {
+    uint32_t branch = stream[0];
+    uint8_t imm = 0;
+
+    if (pf_maskmatch32(branch, 0x54000000, 0xff000010)) {
+        // b.cond
+        imm = 19;
+    } else if (pf_maskmatch32(branch, 0x14000000, 0x7c000000)) {
+        // b / bl
+        imm = 26;
+    } else {
+        printf("%s: is not branch!\n", __FUNCTION__);
+        return 0;
+    }
+
+    uint32_t *target = stream + pf_signextend_32(branch, imm);
+
+    return fileset_follow_veneer(buf, kext, target);
+}
+
+void *fileset_follow_xref(void *buf, void *kext, uint32_t *stream) {
+    // this is marked as void * so it can be casted to a different type later
+    if (!pf_maskmatch32(stream[0], 0x90000000, 0x9f000000)) {
+        printf("%s: is not adrp!\n", __FUNCTION__);
+        return 0;
+    } else if (!pf_maskmatch32(stream[1], 0x91000000, 0xff800000)) {
+        printf("%s: is not add!\n", __FUNCTION__);
+        return 0;
+    }
+
+    int64_t adrp_addr = pf_adrp_offset(stream[0]);
+    uint32_t add_offset = (stream[1] >> 10) & 0xfff;
+
+    uint64_t stream_va = fileset_ptr_to_va(buf, kext, stream);
+    uint64_t stream_addr = stream_va & ~0xfffUL;
+    uint64_t followed_addr = stream_addr + adrp_addr + add_offset;
+
+    return fileset_va_to_ptr(buf, kext, followed_addr);
 }

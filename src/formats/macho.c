@@ -233,12 +233,12 @@ struct section_64 *macho_find_section_for_va(void *buf, uint64_t addr) {
     return section;
 }
 
-void *macho_va_to_ptr(void *buf, void *kext, uint64_t addr) {
+void *macho_va_to_ptr(void *buf, uint64_t addr) {
     if (!macho_check(buf)) {
         return NULL;
     }
 
-    struct segment_command_64 *segment = macho_get_segment_for_va(kext, addr);
+    struct segment_command_64 *segment = macho_get_segment_for_va(buf, addr);
     if (!segment) {
         return NULL;
     } else if (segment->vmaddr == addr) {
@@ -252,13 +252,13 @@ void *macho_va_to_ptr(void *buf, void *kext, uint64_t addr) {
     return buf + section->offset + offset;
 }
 
-struct segment_command_64 *macho_get_segment_for_ptr(void *buf, void *kext, void *ptr) {
+struct segment_command_64 *macho_get_segment_for_ptr(void *buf, void *ptr) {
     if (!macho_check(buf)) {
         return NULL;
     }
 
-    struct load_command_64 *after_header = kext + sizeof(struct mach_header_64);
-    struct mach_header_64 *header = kext;
+    struct load_command_64 *after_header = buf + sizeof(struct mach_header_64);
+    struct mach_header_64 *header = buf;
     struct segment_command_64 *segment = NULL;
     uint64_t ptr_addr = (uint64_t) ptr;
 
@@ -301,12 +301,12 @@ struct section_64 *macho_get_section_for_ptr(struct segment_command_64 *segment,
     return NULL;
 }
 
-struct section_64 *macho_find_section_for_ptr(void *buf, void *kext, void *ptr) {
+struct section_64 *macho_find_section_for_ptr(void *buf, void *ptr) {
     if (!macho_check(buf)) {
         return NULL;
     }
 
-    struct segment_command_64 *segment = macho_get_segment_for_ptr(buf, kext, ptr);
+    struct segment_command_64 *segment = macho_get_segment_for_ptr(buf, ptr);
     if (!segment) {
         return NULL;
     }
@@ -319,25 +319,25 @@ struct section_64 *macho_find_section_for_ptr(void *buf, void *kext, void *ptr) 
     return section;
 }
 
-uint64_t macho_ptr_to_va(void *buf, void *kext, void *ptr) {
+uint64_t macho_ptr_to_va(void *buf, void *ptr) {
     if (!macho_check(buf)) {
         return 0;
     }
 
-    struct section_64 *section = macho_find_section_for_ptr(buf, kext, ptr);
+    struct section_64 *section = macho_find_section_for_ptr(buf, ptr);
 
     uint64_t offset = ptr - buf - section->offset;
     
     return section->addr + offset;
 }
 
-struct nlist_64 *macho_find_symbol(void *buf, void *kext, char *name) {
+struct nlist_64 *macho_find_symbol(void *buf, char *name) {
     if (!macho_check(buf)) {
         return NULL;
     }
 
-    struct load_command_64 *after_header = kext + sizeof(struct mach_header_64);
-    struct mach_header_64 *header = kext;
+    struct load_command_64 *after_header = buf + sizeof(struct mach_header_64);
+    struct mach_header_64 *header = buf;
     struct symtab_command *symtab_cmd;
 
     for (int i = 0; i < header->ncmds; i++) {
@@ -386,7 +386,7 @@ uint64_t macho_get_symbol_size(struct nlist_64 *symbol) {
     return next_symbol->offset - symbol->offset;
 }
 
-/*uint64_t macho_parse_plist_integer(void *key) {
+uint64_t macho_parse_plist_integer(void *key) {
     char *key_value = strstr(key, "<integer");
 
     if (key_value) {
@@ -457,7 +457,7 @@ struct mach_header_64 *macho_parse_prelink_info(void *buf, struct section_64 *km
     }
 
     return kext;
-}*/
+}
 
 uint64_t macho_xnu_untag_va(uint64_t addr) {
     if (((addr >> 32) & 0xffff) == 0xfff0) {
@@ -467,7 +467,7 @@ uint64_t macho_xnu_untag_va(uint64_t addr) {
     }
 }
 
-/*struct mach_header_64 *macho_parse_kmod_info(void *buf, struct section_64 *kmod_info, struct section_64 *kmod_start, char *bundle_name) {\
+struct mach_header_64 *macho_parse_kmod_info(void *buf, struct section_64 *kmod_info, struct section_64 *kmod_start, char *bundle_name) {\
     if (!macho_check(buf)) {
         return NULL;
     }
@@ -536,4 +536,123 @@ void macho_run_each_kext(void *buf, void (*function)(void *real_buf, void *kextb
             function(buf, macho_va_to_ptr(buf, macho_xnu_untag_va(kext_text->addr)), kext_text->size);
         }
     }
-}*/
+}
+
+void *fileset_va_to_ptr(void *buf, void *kext, uint64_t addr) {
+    if (!macho_check(buf)) {
+        return NULL;
+    }
+
+    struct segment_command_64 *segment = macho_get_segment_for_va(kext, addr);
+    if (!segment) {
+        return NULL;
+    } else if (segment->vmaddr == addr) {
+        return buf + segment->fileoff;
+    }
+
+    struct section_64 *section = macho_get_section_for_va(segment, addr);
+
+    uint64_t offset = addr - section->addr;
+    
+    return buf + section->offset + offset;
+}
+
+struct segment_command_64 *fileset_get_segment_for_ptr(void *buf, void *kext, void *ptr) {
+    if (!macho_check(buf)) {
+        return NULL;
+    }
+
+    struct load_command_64 *after_header = kext + sizeof(struct mach_header_64);
+    struct mach_header_64 *header = kext;
+    struct segment_command_64 *segment = NULL;
+    uint64_t ptr_addr = (uint64_t) ptr;
+
+    for (int i = 0; i < header->ncmds; i++) {
+        if (after_header->cmd == LC_SEGMENT_64) {
+            segment = (struct segment_command_64 *) after_header;
+            uint64_t segment_start = (uint64_t) buf + segment->fileoff;
+            uint64_t segment_end = segment_start + segment->filesize;
+
+            if (segment_start <= ptr_addr && segment_end > ptr_addr) {
+                // segment's range contains the ptr
+                return segment;
+            }
+        }
+
+        after_header = (struct load_command_64 *) ((char *) after_header + after_header->cmdsize);
+    }
+
+    printf("%s: Unable to find segment containing ptr %p!\n", __FUNCTION__, ptr);
+    return NULL;
+}
+
+struct section_64 *fileset_find_section_for_ptr(void *buf, void *kext, void *ptr) {
+    if (!macho_check(buf)) {
+        return NULL;
+    }
+
+    struct segment_command_64 *segment = fileset_get_segment_for_ptr(buf, kext, ptr);
+    if (!segment) {
+        return NULL;
+    }
+
+    struct section_64 *section = macho_get_section_for_ptr(segment, buf, ptr);
+    if (!section) {
+        return NULL;
+    }
+
+    return section;
+}
+
+
+uint64_t fileset_ptr_to_va(void *buf, void *kext, void *ptr) {
+    if (!macho_check(buf)) {
+        return 0;
+    }
+
+    struct section_64 *section = fileset_find_section_for_ptr(buf, kext, ptr);
+
+    uint64_t offset = ptr - buf - section->offset;
+    
+    return section->addr + offset;
+}
+
+struct nlist_64 *fileset_find_symbol(void *buf, void *kext, char *name) {
+    if (!macho_check(buf)) {
+        return NULL;
+    }
+
+    struct load_command_64 *after_header = kext + sizeof(struct mach_header_64);
+    struct mach_header_64 *header = kext;
+    struct symtab_command *symtab_cmd;
+
+    for (int i = 0; i < header->ncmds; i++) {
+        if (after_header->cmd == LC_SYMTAB) {
+            symtab_cmd = (struct symtab_command *) after_header;
+
+            break;
+        }
+
+        after_header = (struct load_command_64 *) ((char *) after_header + after_header->cmdsize);
+    }
+
+    if (!symtab_cmd) {
+        printf("%s: Unable to find symbol table!\n", __FUNCTION__);
+        return NULL;
+    }
+
+    struct nlist_64 *symtab = buf + symtab_cmd->symoff;
+    char *strtab = buf + symtab_cmd->stroff;
+
+    for (uint32_t i = 0; i < symtab_cmd->nsyms; i++) {
+        struct nlist_64 *symbol_nlist = symtab + i;
+        char *sym_name = strtab + symbol_nlist->un.str_index;
+
+        if (strcmp(sym_name, name) == 0) {
+            return symbol_nlist;
+        }
+    }
+
+    //printf("%s: Unable to find symbol %s!\n", __FUNCTION__, name);
+    return NULL;
+}
