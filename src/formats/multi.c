@@ -13,7 +13,7 @@ void *pf_va_to_ptr(void *buf, uint64_t addr) {
     void *ptr = NULL;
 
     if (macho_check(buf)) {
-        ptr = macho_va_to_ptr(buf, addr);
+        ptr = macho_va_to_ptr(buf, 0, addr);
     } else if (elf_check(buf)) {
         ptr = elf_va_to_ptr(buf, addr);
     } else if (pe_check(buf)) {
@@ -29,7 +29,7 @@ uint64_t pf_ptr_to_va(void *buf, void *ptr) {
     uint64_t va = 0;
 
     if (macho_check(buf)) {
-        va = macho_ptr_to_va(buf, ptr);
+        va = macho_ptr_to_va(buf, 0, ptr);
     } else if (elf_check(buf)) {
         va = elf_ptr_to_va(buf, ptr);
     } else if (pe_check(buf)) {

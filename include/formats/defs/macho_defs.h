@@ -6,6 +6,7 @@
 #define LC_BUILD_VERSION 0x32
 #define LC_SYMTAB 0x2
 #define CPU_TYPE_ARM64 0xc000001
+#define LC_FILESET_ENTRY 0x80000035
 
 struct mach_header_64 {
     uint32_t magic;
@@ -114,6 +115,15 @@ struct kmod_info {
 struct kmod_reference {
 	struct kmod_reference *next;
 	struct kmod_info *info;
+};
+
+struct fileset_entry_command {
+    uint32_t cmd;
+    uint32_t cmdsize;
+    uint64_t vmaddr;
+    uint64_t fileoff;
+    uint32_t entry_id;
+    uint32_t reserved;
 };
 
 #endif
